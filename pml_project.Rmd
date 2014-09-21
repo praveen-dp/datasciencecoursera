@@ -1,0 +1,73 @@
+---
+title: "PRACTICAL MACHINE LEARNING"
+output: html_document
+---
+
+
+Data Preprocessing:
+
+First of the steps will be to load the given training and test data sets.
+
+``` {r}
+library(caret)
+library(lattice)
+library(ggplot2)
+traindata <- read.csv("C://Users//Susan//Desktop//pml-training.csv", header=TRUE)
+testdata <- read.csv("C://Users//Susan//Desktop//pml-testing.csv", header=TRUE)
+```
+
+A glance through at the training data reveals that there exists variables which may not be relevant for the analysis/modelling purpose . we may remove such variables from the training dataset through the following code
+
+```{r}
+Refine <- grep("X|cvtd_timestamp|user_name|new_window", names(traindata))
+traindata<- traindata[, -Refine]
+
+```
+
+Remove those variables with zero variance. the presence of non-informative predictors does not contribute to the performance of the model.
+
+``` {r}
+zero_var <- nearZeroVar(traindata)
+train_data_clean <- traindata[,-zero_var]
+
+```
+
+Missing values in the data can be handled by replacing with 0
+
+```{r}
+## remove NA's
+train_data_clean[is.na(train_data_clean)] <- 0
+```
+
+having completed processing the data, in order to ensure that the model works not just only for the base data but also for the new data,we may now partition the training dataset into two sets. one for training the model and the other for validation which is unknown to the model. This helps to determine if there is any overfitting of model to the input data which may impact the performance of the model when subjected to new data.
+
+```{r}
+## data Partitioning
+
+partition <- createDataPartition(y=train_data_clean$classe, p = 0.8, list = FALSE)
+
+Final_traindata <- train_data_clean[partition,]
+Final_validation <- train_data_clean[-partition,]
+
+```
+
+modelling the data - Random Forest
+
+```{r}
+#fit the model
+library(randomForest)
+fitted <- randomForest(classe ~ ., data = Final_traindata)
+fitted
+
+```
+
+Cross validation on the partitioned test data
+
+``` {r}
+#Test the model
+validate <- predict(fitted, Final_validation)
+confusionMatrix(validate, Final_validation$classe)
+
+```
+The model has predicted quiet well and shown accuracy of over 99% on the test data(partitioned from training data) with  out of sample error is estimated at 0.28%
+
